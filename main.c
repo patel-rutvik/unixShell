@@ -7,14 +7,29 @@
 #define MAX_LENGTH 20
 #define MAX_PT_ENTRIES 32
 
-bool helperText = true;
+bool helperText = false;
+int numProcesses = 0;
+int userTime = 0;
+int sysTime = 0;
 
 void displayJobs()
 {
-    if (helperText) 
-    {
-        printf("Displaying the current jobs: \n");
+    printf("\nRunning processes:\n");
+    if (numProcesses != 0) {
+        printf("#     PID S SEC COMMAND\n");
     }
+    printf("Processes =    %d active\n", numProcesses);
+    printf("Completed processes:\n");
+    printf("User time =    %d seconds\n", userTime);
+    printf("Sys  time =    %d seconds\n\n", sysTime);
+
+    return;
+}
+
+void exitCommand() {
+    printf("\nResources used\n");
+    printf("User time =    %d seconds\n", userTime);
+    printf("Sys  time =    %d seconds\n\n", sysTime);
     return;
 }
 
@@ -24,26 +39,51 @@ void startShell(int argc, char *argv[])
     {
         printf("mini shell running...\n");
     }
-    char commands[LINE_LENGTH];
+    char command[LINE_LENGTH];
     bool shellRunning = true;
-
+    int loopCount = 0;
+    char moreCommands[5][10] = {
+                                "kill",
+                                "resume",
+                                "sleep",
+                                "suspend",
+                                "wait"
+                                };
+    int moreCommandsLen = sizeof(moreCommands)/sizeof(moreCommands[0]);
+    bool moreArgs = false;
     while (shellRunning) 
     {
-        scanf ("%s", commands);
+        printf("SHELL379: ");
+        scanf ("%s", command);
+        //printf("number of commands captured: %d\n", argc);
+        for (int i = 0; i < moreCommandsLen; i++)
+        {
+            if(!strcmp(moreCommands[i], command))
+            {
+                printf("hit, keep reading more arguments!\n");
+                moreArgs = true;
+            }
+        }
         if (helperText)
         {
-            printf ("command entered: %s\n", commands);
+            printf("command entered: %s\n", command);
         }
-        if (strcmp(commands, "exit") == 0)  // add functionality to strip spaces..
+        if (strcmp(command, "exit") == 0)  // add functionality to strip spaces..
         {
-            if (helperText)
-            {
-                printf("shell terminated...\n");
-            }
-            break;
-        } else if (strcmp(commands, "jobs") == 0) 
+            // wait until all processes are completed
+
+            // print out total user/system time for each process
+            exitCommand();
+            shellRunning = false;
+        } else if (strcmp(command, "jobs") == 0) 
         {
             displayJobs();
+        } else if(moreArgs) {
+            printf("looping again for more one more argument.\n");
+        }
+        if (helperText)
+        {
+            printf("times loop ran: %d\n\n", loopCount++);
         }
     }
 }

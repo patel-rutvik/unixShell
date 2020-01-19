@@ -9,7 +9,7 @@
 CC = gcc # compiler of choice
 CFLAGS = -g -Wall # compile flags
 OBJS = main.o # object files generated
-EXC = main # executable name
+EXC = shell379 # executable name
 
 # builds the project
 $(EXC): $(OBJS)
