@@ -24,10 +24,9 @@ clean:
 
 # printing out the makefile target objectives
 help:
-	@echo 'make        : '
-	@echo 'make .o : '
-	@echo 'make      : '
-	@echo 'make clean        : removes the .o and executable files from the directory'
-	@echo 'make help         : prints out information about the targets of the make file'
+	@echo 'make (shell379) : builds the project and generates the shell379 executable'
+	@echo 'make main.o     : compiles main.cpp into its respective object (.o) file'
+	@echo 'make clean      : removes the .o and executable files from the directory'
+	@echo 'make help       : prints out information about the targets of the make file'
 
 
