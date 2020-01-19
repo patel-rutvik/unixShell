@@ -7,14 +7,29 @@
 #define MAX_LENGTH 20
 #define MAX_PT_ENTRIES 32
 
-bool helperText = true;
+bool helperText = false;
+int numProcesses = 0;
+int userTime = 0;
+int sysTime = 0;
 
 void displayJobs()
 {
-    if (helperText) 
-    {
-        printf("Displaying the current jobs: \n");
+    printf("\nRunning processes:\n");
+    if (numProcesses != 0) {
+        printf("#     PID S SEC COMMAND\n");
     }
+    printf("Processes =    %d active\n", numProcesses);
+    printf("Completed processes:\n");
+    printf("User time =    %d seconds\n", userTime);
+    printf("Sys  time =    %d seconds\n\n", sysTime);
+
+    return;
+}
+
+void exitCommand() {
+    printf("\nResources used\n");
+    printf("User time =    %d seconds\n", userTime);
+    printf("Sys  time =    %d seconds\n\n", sysTime);
     return;
 }
 
@@ -38,8 +53,9 @@ void startShell(int argc, char *argv[])
     bool moreArgs = false;
     while (shellRunning) 
     {
+        printf("SHELL379: ");
         scanf ("%s", command);
-        printf("number of commands captured: %d\n", argc);
+        //printf("number of commands captured: %d\n", argc);
         for (int i = 0; i < moreCommandsLen; i++)
         {
             if(!strcmp(moreCommands[i], command))
@@ -57,16 +73,13 @@ void startShell(int argc, char *argv[])
             // wait until all processes are completed
 
             // print out total user/system time for each process
-            if (helperText)
-            {
-                printf("shell terminated...\n");
-            }
+            exitCommand();
             shellRunning = false;
         } else if (strcmp(command, "jobs") == 0) 
         {
             displayJobs();
         } else if(moreArgs) {
-            printf("looping again for more arguments.\n");
+            printf("looping again for more one more argument.\n");
         }
         if (helperText)
         {
