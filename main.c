@@ -24,26 +24,53 @@ void startShell(int argc, char *argv[])
     {
         printf("mini shell running...\n");
     }
-    char commands[LINE_LENGTH];
+    char command[LINE_LENGTH];
     bool shellRunning = true;
-
+    int loopCount = 0;
+    char moreCommands[5][10] = {
+                                "kill",
+                                "resume",
+                                "sleep",
+                                "suspend",
+                                "wait"
+                                };
+    int moreCommandsLen = sizeof(moreCommands)/sizeof(moreCommands[0]);
+    bool moreArgs = false;
     while (shellRunning) 
     {
-        scanf ("%s", commands);
+        scanf ("%s", command);
+        printf("number of commands captured: %d\n", argc);
+        for (int i = 0; i < moreCommandsLen; i++)
+        {
+            if(!strcmp(moreCommands[i], command))
+            {
+                printf("hit, keep reading more arguments!\n");
+                moreArgs = true;
+            }
+        }
         if (helperText)
         {
-            printf ("command entered: %s\n", commands);
+            printf("command entered: %s\n", command);
         }
-        if (strcmp(commands, "exit") == 0)  // add functionality to strip spaces..
+        if (strcmp(command, "exit") == 0)  // add functionality to strip spaces..
         {
+            // wait until all processes are completed
+
+            // print out total user/system time for each process
             if (helperText)
             {
                 printf("shell terminated...\n");
             }
-            break;
-        } else if (strcmp(commands, "jobs") == 0) 
+            shellRunning = false;
+        } else if (strcmp(command, "jobs") == 0) 
         {
             displayJobs();
+        } else if(moreArgs) {
+            printf("looping again for more arguments.\n");
+        }
+        if (helperText)
+        {
+            printf("times loop ran: %d\n\n", loopCount++);
         }
     }
 }
