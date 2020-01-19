@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define LINE_LENGTH 100
 #define MAX_ARGS 7
 #define MAX_LENGTH 20
 #define MAX_PT_ENTRIES 32
 
-bool helperText = false;
+bool helperText = true;
 int numProcesses = 0;
 int userTime = 0;
 int sysTime = 0;
@@ -51,6 +53,9 @@ void startShell(int argc, char *argv[])
                                 };
     int moreCommandsLen = sizeof(moreCommands)/sizeof(moreCommands[0]);
     bool moreArgs = false;
+
+    //TODO: find a way to read by LINE not each WORD...
+    // if you press enter... another "SHELL379:"" should show up...
     while (shellRunning) 
     {
         printf("SHELL379: ");
