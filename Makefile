@@ -15,8 +15,12 @@ EXC = shell379 # executable name
 $(EXC): $(OBJS)
 	$(CC) $(CFLAGS) -o $(EXC) $(OBJS)
 
-main.o: main.c
+main.o: main.c util.h
 	$(CC) -c main.c
+
+#util.o: util.c util.h
+	#$(CC) -c util.c
+
 
 # removes the .o and executable files from the directory
 clean:
