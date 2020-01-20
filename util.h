@@ -14,8 +14,6 @@
 #define BUFFER_SIZE 1024
 #define TOKEN_BUFFER_SIZE 64
 
-
-
 void displayJobs();
 void resume();
 void killProcess();

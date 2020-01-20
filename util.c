@@ -6,7 +6,7 @@ int numProcesses = 0;
 int userTime = 0;
 int sysTime = 0;
 
-//List of builtin commands, followed by their corresponding functions.
+// List of builtin commands, followed by their corresponding functions.
 char *builtinNames[] = {
     "jobs",
     "resume",
