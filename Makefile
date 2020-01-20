@@ -8,7 +8,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 CC = gcc # compiler of choice
 CFLAGS = -g -Wall # compile flags
-OBJS = main.o # object files generated
+OBJS = main.o util.o # object files generated
 EXC = shell379 # executable name
 
 # builds the project
@@ -18,8 +18,8 @@ $(EXC): $(OBJS)
 main.o: main.c util.h
 	$(CC) -c main.c
 
-#util.o: util.c util.h
-	#$(CC) -c util.c
+util.o: util.c util.h
+	$(CC) -c util.c
 
 
 # removes the .o and executable files from the directory
