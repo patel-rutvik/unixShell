@@ -7,7 +7,8 @@ int userTime = 0;
 int sysTime = 0;
 
 // List of builtin commands, followed by their corresponding functions.
-char *builtinNames[] = {
+char *builtinNames[] = 
+{
     "jobs",
     "resume",
     "kill",
@@ -18,7 +19,8 @@ char *builtinNames[] = {
     "exit"
 };
 
-int (*builtinFunc[]) (char **) = {
+int (*builtinFunc[]) (char **) = 
+{
   &displayJobs,
   &resume,
   &killProcess,
@@ -29,31 +31,38 @@ int (*builtinFunc[]) (char **) = {
   &exitCommand
 };
 
-int numFunctions() {
+int numFunctions() 
+{
   return sizeof(builtinNames) / sizeof(char *);
 }
 
-void resume() {
+void resume() 
+{
     printf("resume function call\n");
 }
 
-void killProcess() {
+void killProcess() 
+{
     printf("kill function call\n");
 }
 
-void sleepProcess() {
+void sleepProcess() 
+{
     printf("sleep function call\n");
 }
 
-void suspendProcess() {
+void suspendProcess() 
+{
     printf("suspend function call\n");
 }
 
-void waitProcess() {
+void waitProcess() 
+{
     printf("wait function call\n");
 }
 
-void help() {
+void help() 
+{
     printf("help function call\n");
 }
 
@@ -135,7 +144,8 @@ char **splitLine(char *line)
     return tokens;    
 }
 
-bool runCommand(char **args) {
+bool runCommand(char **args) 
+{
     // no commands entered...
     if (args[0] == NULL) {
         return true;
