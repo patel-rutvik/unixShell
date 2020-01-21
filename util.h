@@ -22,8 +22,9 @@ void suspendProcess();
 void waitProcess();
 void help();
 bool exitCommand();
-bool checkNumArgs(char **args);
+bool checkTooManyArgs(char **args);
 bool runCommand(char **args);
+bool checkNoArgs(char **args);
 void startShell(int argc, char *argv[]);
 
 #endif

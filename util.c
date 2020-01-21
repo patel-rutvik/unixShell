@@ -42,27 +42,36 @@ int numFunctions()
 void resume(char ** args) 
 {
     printf("resume function call\n");
+    checkNoArgs(args);
+
 }
 
 void killProcess(char ** args) 
 {
     printf("kill function call\n");
     printf("the second arg: %s\n", args[1]);
+    checkNoArgs(args);
+
 }
 
 void sleepProcess(char ** args) 
 {
     printf("sleep function call\n");
+    checkNoArgs(args);
+
 }
 
 void suspendProcess(char ** args) 
 {
     printf("suspend function call\n");
+    checkNoArgs(args);
+
 }
 
 void waitProcess(char ** args) 
 {
     printf("wait function call\n");
+    checkNoArgs(args);
 }
 
 void help() 
@@ -145,7 +154,7 @@ char **splitLine(char *line)
     return tokens;    
 }
 
-bool checkNumArgs(char **args) {
+bool checkTooManyArgs(char **args) {
     if (args[2] != NULL) {
         printf("too many commands entered!\n");
         return true;
@@ -153,6 +162,27 @@ bool checkNumArgs(char **args) {
     return false;
 }
 
+bool checkNoArgs(char **args) {
+    if (args[1] == NULL) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
+        return true;
+    }
+}
+/*
+void makeProcess(char **args) {
+    pid_t childPid = fork();
+        
+    
+    if (!childPid) {
+        // child process
+        printf("Child:\nCurrent PID: %d and Child PID: %d\n",
+               getpid(), childPid);
+    } else {
+        printf("### Parent ###\nCurrent PID: %d and Child PID: %d\n",
+               getpid(), childPid);
+    }
+}
+*/
 /*
 void makeProcess(char **args) {
     pid_t pid;
@@ -185,8 +215,8 @@ bool runCommand(char **args)
     //printf("running the command...\n");
     for (int i = 0; i < numFunctions(); i++) {
         if (strcmp(args[0], builtinNames[i]) == 0) {
-            argFlag = checkNumArgs(args);
-            if (argFlag) {
+            argFlag = checkTooManyArgs(args);
+            if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
                 return argFlag;
             }
             
