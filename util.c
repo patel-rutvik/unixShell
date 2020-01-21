@@ -5,6 +5,8 @@ bool helperText = true;
 int numProcesses = 0;
 int userTime = 0;
 int sysTime = 0;
+bool exitSignal = false;
+
 
 // List of builtin commands, followed by their corresponding functions.
 char *builtinNames[] = 
@@ -36,27 +38,29 @@ int numFunctions()
   return sizeof(builtinNames) / sizeof(char *);
 }
 
-void resume() 
+// TODO: check args length, if more than 2, handle error accordingly...
+void resume(char ** args) 
 {
     printf("resume function call\n");
 }
 
-void killProcess() 
+void killProcess(char ** args) 
 {
     printf("kill function call\n");
+    printf("the second arg: %s\n", args[1]);
 }
 
-void sleepProcess() 
+void sleepProcess(char ** args) 
 {
     printf("sleep function call\n");
 }
 
-void suspendProcess() 
+void suspendProcess(char ** args) 
 {
     printf("suspend function call\n");
 }
 
-void waitProcess() 
+void waitProcess(char ** args) 
 {
     printf("wait function call\n");
 }
@@ -85,6 +89,8 @@ bool exitCommand()
     printf("\nResources used\n");
     printf("User time =    %d seconds\n", userTime);
     printf("Sys  time =    %d seconds\n\n", sysTime);
+
+    exitSignal = true;
     return false;
 }
 
@@ -135,17 +141,42 @@ char **splitLine(char *line)
         tok = strtok(NULL, delims);
     }
     tokens[pos] = NULL;
-    /*
-    printf(sizeof(tokens));
-    printf("\n");
-    printf(sizeof(tokens[0]));
-    printf("\n");
-    */
+    
     return tokens;    
 }
 
+bool checkNumArgs(char **args) {
+    if (args[2] != NULL) {
+        printf("too many commands entered!\n");
+        return true;
+    }
+    return false;
+}
+
+/*
+void makeProcess(char **args) {
+    pid_t pid;
+    if (fork()) {
+        // child process
+        if (execvp(args[0], args) == -1) {
+            perror(args[0]);
+        }
+        return;
+    } else if (pid < 0) {
+        // error forking
+        perror(args[0]);
+    } else {
+        // parent process
+
+
+    }
+    return;
+}
+*/
+
 bool runCommand(char **args) 
 {
+    bool argFlag = false;
     // no commands entered...
     if (args[0] == NULL) {
         return true;
@@ -154,11 +185,17 @@ bool runCommand(char **args)
     //printf("running the command...\n");
     for (int i = 0; i < numFunctions(); i++) {
         if (strcmp(args[0], builtinNames[i]) == 0) {
+            argFlag = checkNumArgs(args);
+            if (argFlag) {
+                return argFlag;
+            }
+            
             return (*builtinFunc[i])(args);
         }
     }
 
     printf("yet to create the newProcess function...\n");
+    //makeProcess(args);
     return true;
     // not a built in command, must be executed
     //return newProcess(args);
@@ -179,6 +216,10 @@ void startShell(int argc, char *argv[])
         line = readLine();
         arguments = splitLine(line);
         shellRunning = runCommand(arguments);
+
+        if (exitSignal) {
+            shellRunning = false;
+        }
         /*
         int len = sizeof(arguments)/sizeof(arguments[0]);
         printf("%d\n", sizeof(arguments));

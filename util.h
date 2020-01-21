@@ -16,12 +16,14 @@
 
 void displayJobs();
 void resume();
-void killProcess();
+void killProcess(char **args);
 void sleepProcess();
 void suspendProcess();
 void waitProcess();
 void help();
 bool exitCommand();
+bool checkNumArgs(char **args);
+bool runCommand(char **args);
 void startShell(int argc, char *argv[]);
 
 #endif
