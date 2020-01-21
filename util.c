@@ -216,7 +216,8 @@ bool runCommand(char **args)
     for (int i = 0; i < numFunctions(); i++) {
         if (strcmp(args[0], builtinNames[i]) == 0) {
             argFlag = checkTooManyArgs(args);
-            if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
+            //if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
+            if (argFlag) {
                 return argFlag;
             }
             
