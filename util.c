@@ -6,6 +6,11 @@ int numProcesses = 0;
 int userTime = 0;
 int sysTime = 0;
 bool exitSignal = false;
+int pids[100];
+
+// can i have a pointer to the start??
+int pidIndex = 0;
+
 
 
 // List of builtin commands, followed by their corresponding functions.
@@ -43,6 +48,7 @@ bool resume(char ** args)
 {
     printf("resume function call\n");
     if (checkNoArgs(args)) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
@@ -53,8 +59,9 @@ bool resume(char ** args)
 bool killProcess(char ** args) 
 {
     printf("kill function call\n");
-    printf("the second arg: %s\n", args[1]);
+    //printf("the second arg: %s\n", args[1]);
     if (checkNoArgs(args)) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
@@ -66,6 +73,7 @@ bool sleepProcess(char ** args)
 {
     printf("sleep function call\n");
     if (checkNoArgs(args)) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
@@ -77,6 +85,7 @@ bool suspendProcess(char ** args)
 {
     printf("suspend function call\n");
     if (checkNoArgs(args)) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
@@ -88,6 +97,7 @@ bool waitProcess(char ** args)
 {
     printf("wait function call\n");
     if (checkNoArgs(args)) {
+        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
@@ -100,11 +110,18 @@ void help()
     printf("help function call\n");
 }
 
-bool displayJobs()
+bool displayJobs(char **args)
 {
+    if (!checkNoArgs(args)) {
+        printf("JOBS command does not take any arguments.\n");
+        return true;
+    }
     printf("\nRunning processes:\n");
-    if (numProcesses != 0) {
-        printf("#     PID S SEC COMMAND\n");
+    if (numProcesses > 0) {
+        printf("  #     PID S SEC COMMAND\n");
+        for (int i = 0; i < numProcesses; i++) {
+            printf("  %d:   %d R SEC  %s\n", i, pids[i], args[0]);
+        }
     }
     printf("Processes =    %d active\n", numProcesses);
     printf("Completed processes:\n");
@@ -114,8 +131,12 @@ bool displayJobs()
     return true;
 }
 
-bool exitCommand() 
+bool exitCommand(char **args) 
 {
+    if (!checkNoArgs(args)) {
+        printf("EXIT command does not take any arguments.\n");
+        return true;
+    }
     printf("\nResources used\n");
     printf("User time =    %d seconds\n", userTime);
     printf("Sys  time =    %d seconds\n\n", sysTime);
@@ -126,25 +147,6 @@ bool exitCommand()
 
 char *readLine() 
 {
-    /*
-    int bufferSize = BUFFER_SIZE;
-    int pos = 0;
-    char *buff = malloc(sizeof(char) * bufferSize);
-    int ch;
-
-    while(true) 
-    {
-        ch = getchar();
-
-        if (ch == '\n' || ch == EOF) {
-            return buff[pos] = '\0';
-        } else {
-            buff[pos] = ch;
-        }
-        pos++;
-    }
-    */
-    
     char *inputLine = NULL;
     size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
     getline(&inputLine, &bufferSize, stdin);
@@ -185,13 +187,50 @@ bool checkTooManyArgs(char **args) {
 
 bool checkNoArgs(char **args) {
     if (args[1] == NULL) {
-        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
     return false;
 }
-/*
-void makeProcess(char **args) {
+
+bool makeProcess(char **args) {
+    pid_t pid;
+    pid_t wait_pid;
+    int status;
+
+    pid = fork();
+
+    if (pid == 0) {
+        // Child process
+        numProcesses++;
+        printf("Running child process with pid: %d\n", pid);
+        if (execvp(args[0], args) < 0) {
+            perror("SHELL379: ");
+        }
+        exit(EXIT_FAILURE);
+        } else if (pid < 0) {
+            // Error forking
+            perror("SHELL379: ");
+        } else {
+            // Parent process
+
+            // add pid to pid array
+            pids[pidIndex] = pid;
+            pidIndex++;
+            // increment number of processes
+            numProcesses++;
+            printf("Running parent process with pid: %d\n", getpid());
+
+            // if pid == (pid from a wait command entered)
+            //      wait(NULL)
+
+            do {
+            wait_pid = waitpid(pid, &status, WUNTRACED);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+    
+
+    return 1;
+    /*
     pid_t childPid = fork();
         
     
@@ -203,8 +242,10 @@ void makeProcess(char **args) {
         printf("### Parent ###\nCurrent PID: %d and Child PID: %d\n",
                getpid(), childPid);
     }
+    return true;
+    */
 }
-*/
+
 /*
 void makeProcess(char **args) {
     pid_t pid;
@@ -229,6 +270,7 @@ void makeProcess(char **args) {
 bool runCommand(char **args) 
 {
     bool argFlag = false;
+    //bool builtinFlag = false;
     // no commands entered...
     if (args[0] == NULL) {
         return true;
@@ -239,27 +281,24 @@ bool runCommand(char **args)
         if (strcmp(args[0], builtinNames[i]) == 0) {
             argFlag = checkTooManyArgs(args);
             //if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
+            // too many arguments, don't execute anything, simply run the shell again
             if (argFlag) {
                 return argFlag;
             }
-            
+            //builtinFlag = true;
             return (*builtinFunc[i])(args);
         }
     }
+    //builtinFlag = false;
 
-    printf("yet to create the newProcess function...\n");
-    //makeProcess(args);
-    return true;
+    printf("newProcess function...\n");
+    return makeProcess(args);
     // not a built in command, must be executed
     //return newProcess(args);
 }
 
 void startShell(int argc, char *argv[]) 
 {
-    if (helperText) 
-    {
-        printf("mini shell running...\n");
-    }
     char *line;
     char **arguments;
     bool shellRunning = true;
