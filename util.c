@@ -39,39 +39,60 @@ int numFunctions()
 }
 
 // TODO: check args length, if more than 2, handle error accordingly...
-void resume(char ** args) 
+bool resume(char ** args) 
 {
     printf("resume function call\n");
-    checkNoArgs(args);
+    if (checkNoArgs(args)) {
+        return true;
+    }
+
+    return true;
 
 }
 
-void killProcess(char ** args) 
+bool killProcess(char ** args) 
 {
     printf("kill function call\n");
     printf("the second arg: %s\n", args[1]);
-    checkNoArgs(args);
+    if (checkNoArgs(args)) {
+        return true;
+    }
+
+    return true;
 
 }
 
-void sleepProcess(char ** args) 
+bool sleepProcess(char ** args) 
 {
     printf("sleep function call\n");
-    checkNoArgs(args);
+    if (checkNoArgs(args)) {
+        return true;
+    }
+
+    return true;
 
 }
 
-void suspendProcess(char ** args) 
+bool suspendProcess(char ** args) 
 {
     printf("suspend function call\n");
-    checkNoArgs(args);
+    if (checkNoArgs(args)) {
+        return true;
+    }
+
+    return true;
 
 }
 
-void waitProcess(char ** args) 
+bool waitProcess(char ** args) 
 {
     printf("wait function call\n");
-    checkNoArgs(args);
+    if (checkNoArgs(args)) {
+        return true;
+    }
+
+    return true;
+
 }
 
 void help() 
@@ -79,7 +100,7 @@ void help()
     printf("help function call\n");
 }
 
-void displayJobs()
+bool displayJobs()
 {
     printf("\nRunning processes:\n");
     if (numProcesses != 0) {
@@ -90,7 +111,7 @@ void displayJobs()
     printf("User time =    %d seconds\n", userTime);
     printf("Sys  time =    %d seconds\n\n", sysTime);
 
-    return;
+    return true;
 }
 
 bool exitCommand() 
@@ -167,6 +188,7 @@ bool checkNoArgs(char **args) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
+    return false;
 }
 /*
 void makeProcess(char **args) {
@@ -248,9 +270,11 @@ void startShell(int argc, char *argv[])
         arguments = splitLine(line);
         shellRunning = runCommand(arguments);
 
+        /*
         if (exitSignal) {
             shellRunning = false;
         }
+        */
         /*
         int len = sizeof(arguments)/sizeof(arguments[0]);
         printf("%d\n", sizeof(arguments));

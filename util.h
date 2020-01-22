@@ -14,12 +14,12 @@
 #define BUFFER_SIZE 1024
 #define TOKEN_BUFFER_SIZE 64
 
-void displayJobs();
-void resume();
-void killProcess(char **args);
-void sleepProcess();
-void suspendProcess();
-void waitProcess();
+bool displayJobs();
+bool resume();
+bool killProcess(char **args);
+bool sleepProcess();
+bool suspendProcess();
+bool waitProcess();
 void help();
 bool exitCommand();
 bool checkTooManyArgs(char **args);
