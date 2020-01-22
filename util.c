@@ -44,7 +44,7 @@ int numFunctions()
 }
 
 // TODO: check args length, if more than 2, handle error accordingly...
-bool resume(char ** args) 
+bool resume(char **args) 
 {
     printf("resume function call\n");
     if (checkNoArgs(args)) {
@@ -56,7 +56,16 @@ bool resume(char ** args)
 
 }
 
-bool killProcess(char ** args) 
+bool valueInArray(int val, int *arr, int size){
+    int i;
+    for (i=0; i < size; i++) {
+        if (arr[i] == val)
+            return true;
+    }
+    return false;
+}
+
+bool killProcess(char **args) 
 {
     printf("kill function call\n");
     //printf("the second arg: %s\n", args[1]);
@@ -65,11 +74,19 @@ bool killProcess(char ** args)
         return true;
     }
 
+    // NOT WORKING...
+    if (valueInArray(args[1], pids, pidIndex + 1)) {
+        kill(args[1]);
+        printf("process killed.\n");
+    } else {
+        printf("invalid pid entered...\n");
+    }
+
     return true;
 
 }
 
-bool sleepProcess(char ** args) 
+bool sleepProcess(char **args) 
 {
     printf("sleep function call\n");
     if (checkNoArgs(args)) {
@@ -81,7 +98,7 @@ bool sleepProcess(char ** args)
 
 }
 
-bool suspendProcess(char ** args) 
+bool suspendProcess(char **args) 
 {
     printf("suspend function call\n");
     if (checkNoArgs(args)) {
@@ -93,7 +110,7 @@ bool suspendProcess(char ** args)
 
 }
 
-bool waitProcess(char ** args) 
+bool waitProcess(char **args) 
 {
     printf("wait function call\n");
     if (checkNoArgs(args)) {

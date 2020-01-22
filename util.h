@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+//TODO: find a way to use these constants!!!
 #define LINE_LENGTH 100
 #define MAX_ARGS 7
 #define MAX_LENGTH 20
