@@ -53,7 +53,7 @@ bool resume(char ** args)
 bool killProcess(char ** args) 
 {
     printf("kill function call\n");
-    printf("the second arg: %s\n", args[1]);
+    //printf("the second arg: %s\n", args[1]);
     if (checkNoArgs(args)) {
         return true;
     }
@@ -190,8 +190,36 @@ bool checkNoArgs(char **args) {
     }
     return false;
 }
-/*
-void makeProcess(char **args) {
+
+bool makeProcess(char **args) {
+    pid_t pid, wpid;
+    int status;
+
+    pid = fork();
+
+    if (pid == 0) {
+        // Child process
+        numProcesses++;
+        printf("Running child process with pid: %d\n", pid);
+        if (execvp(args[0], args) == -1) {
+            perror("SHELL379: ");
+        }
+        exit(EXIT_FAILURE);
+        } else if (pid < 0) {
+            // Error forking
+            perror("SHELL379: ");
+        } else {
+            // Parent process
+            numProcesses++;
+            printf("Running parent process with pid: %d\n", getpid());
+            do {
+            wpid = waitpid(pid, &status, WUNTRACED);
+            } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+    
+
+    return 1;
+    /*
     pid_t childPid = fork();
         
     
@@ -203,8 +231,10 @@ void makeProcess(char **args) {
         printf("### Parent ###\nCurrent PID: %d and Child PID: %d\n",
                getpid(), childPid);
     }
+    return true;
+    */
 }
-*/
+
 /*
 void makeProcess(char **args) {
     pid_t pid;
@@ -229,6 +259,7 @@ void makeProcess(char **args) {
 bool runCommand(char **args) 
 {
     bool argFlag = false;
+    //bool builtinFlag = false;
     // no commands entered...
     if (args[0] == NULL) {
         return true;
@@ -239,17 +270,18 @@ bool runCommand(char **args)
         if (strcmp(args[0], builtinNames[i]) == 0) {
             argFlag = checkTooManyArgs(args);
             //if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
+            // too many arguments, don't execute anything, simply run the shell again
             if (argFlag) {
                 return argFlag;
             }
-            
+            //builtinFlag = true;
             return (*builtinFunc[i])(args);
         }
     }
+    //builtinFlag = false;
 
-    printf("yet to create the newProcess function...\n");
-    //makeProcess(args);
-    return true;
+    printf("newProcess function...\n");
+    return makeProcess(args);
     // not a built in command, must be executed
     //return newProcess(args);
 }

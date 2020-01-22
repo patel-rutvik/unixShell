@@ -25,6 +25,7 @@ bool exitCommand();
 bool checkTooManyArgs(char **args);
 bool runCommand(char **args);
 bool checkNoArgs(char **args);
+bool makeProcess(char **args);
 void startShell(int argc, char *argv[]);
 
 #endif
