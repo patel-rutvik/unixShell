@@ -7,15 +7,16 @@ long long userTime = 0;
 long long sysTime = 0;
 bool exitSignal = false;
 int pids[100];
+
 bool background = false;
+
 // can i have a pointer to the start??
 int pidIndex = 0;
 
 char **commands[100];
 
 
-
-// List of builtin commands, followed by their corresponding functions.
+// list of built in commands
 char *builtinNames[] = 
 {
     "jobs",
@@ -28,6 +29,7 @@ char *builtinNames[] =
     "exit"
 };
 
+// corresponding function to the list above
 int (*builtinFunc[]) (char **) = 
 {
   &displayJobs,
@@ -58,6 +60,7 @@ bool resume(char **args)
 
 }
 
+//TODO: not working... fix this...
 bool valueInArray(int val, int *arr, int size){
     int i;
     for (i=0; i < size; i++) {
@@ -88,7 +91,7 @@ bool killProcess(char **args)
         return true;
     }
 
-    // NOT WORKING...
+    // TODO: NOT WORKING...
     if (valueInArray(args[1], pids, pidIndex + 1)) {
         //kill(args[1]);
 
@@ -106,11 +109,13 @@ bool killProcess(char **args)
 
 bool sleepProcess(char **args) 
 {
-    printf("sleep function call\n");
+    //printf("going to sleep for %d seconds...\n", atoi(args[1]));
     if (checkNoArgs(args)) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
+
+    sleep(atoi(args[1]));
 
     return true;
 
@@ -270,6 +275,7 @@ bool makeProcess(char **args) {
 
             // if pid == (pid from a wait command entered)
             //      wait(NULL)
+
             /*
             struct rusage usage;
             getrusage(RUSAGE_SELF, &usage);
@@ -283,6 +289,7 @@ bool makeProcess(char **args) {
             getrusage(RUSAGE_CHILDREN, &usageAfter);
             printf ("%ld.%06ld\n", usageAfter.ru_utime.tv_sec, usageAfter.ru_utime.tv_usec);
             userTime += usageAfter.ru_utime.tv_sec + (usageAfter.ru_utime.tv_usec/1000000);
+            sysTime += usageAfter.ru_stime.tv_sec + (usageAfter.ru_stime.tv_usec/1000000);
 
     }
     
@@ -345,6 +352,22 @@ bool runCommand(char **args)
     //return newProcess(args);
 }
 
+void shellInit() {
+    background = false;
+    printf("SHELL379: ");
+}
+void setBkgd(char **a) {
+    int elemCount = 0;
+        while (a[elemCount] != NULL) {
+            elemCount++;
+        }
+        //printf("%d\n", elemCount);
+        if (!strcmp(a[elemCount - 1], "&")) {  
+            background = true;
+            a[elemCount - 1] == NULL;
+            printf("bkgd process...\n");
+        }
+}
 void startShell(int argc, char *argv[]) 
 {
     char *line;
@@ -352,107 +375,15 @@ void startShell(int argc, char *argv[])
     bool shellRunning = true;
 
     while (shellRunning) {
-        background = false;
-        printf("SHELL379: ");
+        shellInit();
         line = readLine();
         arguments = splitLine(line);
-        
-
-        int i = 0;
-        while (arguments[i] != NULL) {
-            i++;
+        if (arguments[0] == NULL) {
+            continue;
         }
-        printf("%d\n", i);
-        printf("%s\n", arguments[i - 1]);
-        if (!strcmp(arguments[i - 1], "&")) {  
-            background = true;
-            printf("bkgd process...\n");
+        setBkgd(arguments);
 
-        }
         shellRunning = runCommand(arguments);
 
-        /*
-        if (exitSignal) {
-            shellRunning = false;
-        }
-        */
-        /*
-        int len = sizeof(arguments)/sizeof(arguments[0]);
-        printf("%d\n", sizeof(arguments));
-        //printf("\n");
-
-        printf("length of arguments array: %d\n", len);
-        for (int i = 0; i < len; i++)
-        {
-            printf(arguments[i]);
-            printf(" ");
-        }
-        printf("\n");
-
-        if (strcmp(arguments[0], "exit") == 0)  // add functionality to strip spaces..
-        {
-            // wait until all processes are completed
-
-            // print out total user/system time for each process
-            exitCommand();
-            shellRunning = false;
-        } else if (strcmp(arguments[0], "jobs") == 0) 
-        {
-            displayJobs();
-        }
-        */
     }
-    /*
-    char command[LINE_LENGTH];
-    bool shellRunning = true;
-    int loopCount = 0;
-    char moreCommands[5][10] = {
-                                "kill",
-                                "resume",
-                                "sleep",
-                                "suspend",
-                                "wait"
-                                };
-    int moreCommandsLen = sizeof(moreCommands)/sizeof(moreCommands[0]);
-    bool moreArgs = false;
-    
-
-    //TODO: find a way to read by LINE not each WORD...
-    // if you press enter... another "SHELL379:"" should show up...
-    while (shellRunning) 
-    {
-        printf("SHELL379: ");
-        scanf ("%s", command);
-        //printf("number of commands captured: %d\n", argc);
-        for (int i = 0; i < moreCommandsLen; i++)
-        {
-            if(!strcmp(moreCommands[i], command))
-            {
-                printf("hit, keep reading more arguments!\n");
-                moreArgs = true;
-            }
-        }
-        if (helperText)
-        {
-            printf("command entered: %s\n", command);
-        }
-        if (strcmp(command, "exit") == 0)  // add functionality to strip spaces..
-        {
-            // wait until all processes are completed
-
-            // print out total user/system time for each process
-            exitCommand();
-            shellRunning = false;
-        } else if (strcmp(command, "jobs") == 0) 
-        {
-            displayJobs();
-        } else if(moreArgs) {
-            printf("looping again for more one more argument.\n");
-        }
-        if (helperText)
-        {
-            printf("times loop ran: %d\n\n", loopCount++);
-        }
-    }
-    */
 }

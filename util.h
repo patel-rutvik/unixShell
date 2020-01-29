@@ -32,6 +32,7 @@ bool checkTooManyArgs(char **args);
 bool runCommand(char **args);
 bool checkNoArgs(char **args);
 bool makeProcess(char **args);
+void shellInit();
 void startShell(int argc, char *argv[]);
 
 
