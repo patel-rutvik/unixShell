@@ -6,6 +6,11 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/times.h>
+#include <sys/resource.h>
+#include <fcntl.h> 
+
+
 
 //TODO: find a way to use these constants!!!
 #define LINE_LENGTH 100
@@ -28,5 +33,6 @@ bool runCommand(char **args);
 bool checkNoArgs(char **args);
 bool makeProcess(char **args);
 void startShell(int argc, char *argv[]);
+
 
 #endif

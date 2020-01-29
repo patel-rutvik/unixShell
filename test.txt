@@ -1,0 +1,4 @@
+  PID TTY           TIME CMD
+ 6821 ttys000    0:00.39 -zsh
+--
+12414 ttys000    0:00.00 grep -A 1   PID TTY           TIME CMD

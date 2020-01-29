@@ -2,14 +2,16 @@
 
 bool helperText = true;
 
-int numProcesses = 0;
-int userTime = 0;
-int sysTime = 0;
+int numActiveProcesses = 0;
+long long userTime = 0;
+long long sysTime = 0;
 bool exitSignal = false;
 int pids[100];
-
+bool background = false;
 // can i have a pointer to the start??
 int pidIndex = 0;
+
+char **commands[100];
 
 
 
@@ -65,6 +67,13 @@ bool valueInArray(int val, int *arr, int size){
     return false;
 }
 
+bool checkForProcess() {
+    if (pids[0] == NULL) {
+        return false;
+    }
+    return true;
+}
+
 bool killProcess(char **args) 
 {
     printf("kill function call\n");
@@ -74,9 +83,18 @@ bool killProcess(char **args)
         return true;
     }
 
+    if (!checkForProcess()) {
+        printf("no processes running...\n");
+        return true;
+    }
+
     // NOT WORKING...
     if (valueInArray(args[1], pids, pidIndex + 1)) {
-        kill(args[1]);
+        //kill(args[1]);
+
+        // remove pid from pids array...
+
+
         printf("process killed.\n");
     } else {
         printf("invalid pid entered...\n");
@@ -133,17 +151,20 @@ bool displayJobs(char **args)
         printf("JOBS command does not take any arguments.\n");
         return true;
     }
+    char *psCommand[3] = {"ps", "-f", NULL};
+    //execvp(psCommand[0], psCommand);
+    //printf("\n\n");
     printf("\nRunning processes:\n");
-    if (numProcesses > 0) {
+    if (numActiveProcesses > 0) {
         printf("  #     PID S SEC COMMAND\n");
-        for (int i = 0; i < numProcesses; i++) {
-            printf("  %d:   %d R SEC  %s\n", i, pids[i], args[0]);
+        for (int i = 0; i < pidIndex; i++) {
+            printf("  %d:   %d R SEC  %s\n", i, pids[i], commands[i]);
         }
     }
-    printf("Processes =    %d active\n", numProcesses);
+    printf("Processes =    %d active\n", numActiveProcesses);
     printf("Completed processes:\n");
-    printf("User time =    %d seconds\n", userTime);
-    printf("Sys  time =    %d seconds\n\n", sysTime);
+    printf("User time =    %ld seconds\n", userTime);
+    printf("Sys  time =    %ld seconds\n\n", sysTime);
 
     return true;
 }
@@ -167,6 +188,9 @@ char *readLine()
     char *inputLine = NULL;
     size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
     getline(&inputLine, &bufferSize, stdin);
+
+    //TODO: STILL ONLY PRINTS FIRST ELEMENT IN THE LINE...
+    commands[pidIndex] = inputLine;
     return inputLine;
 }
 
@@ -209,6 +233,7 @@ bool checkNoArgs(char **args) {
     return false;
 }
 
+
 bool makeProcess(char **args) {
     pid_t pid;
     pid_t wait_pid;
@@ -217,8 +242,9 @@ bool makeProcess(char **args) {
     pid = fork();
 
     if (pid == 0) {
+
         // Child process
-        numProcesses++;
+        numActiveProcesses++;
         printf("Running child process with pid: %d\n", pid);
         if (execvp(args[0], args) < 0) {
             perror("SHELL379: ");
@@ -229,38 +255,41 @@ bool makeProcess(char **args) {
             perror("SHELL379: ");
         } else {
             // Parent process
+            struct rusage usageBefore;
+            struct rusage usageAfter;
+
+            getrusage(RUSAGE_CHILDREN, &usageBefore);
+            printf ("%ld.%06ld\n", usageBefore.ru_utime.tv_sec, usageBefore.ru_utime.tv_usec);
 
             // add pid to pid array
             pids[pidIndex] = pid;
             pidIndex++;
             // increment number of processes
-            numProcesses++;
+            numActiveProcesses++;
             printf("Running parent process with pid: %d\n", getpid());
 
             // if pid == (pid from a wait command entered)
             //      wait(NULL)
-
+            /*
+            struct rusage usage;
+            getrusage(RUSAGE_SELF, &usage);
+            printf ("%ld.%06ld\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
+            */
+            
             do {
             wait_pid = waitpid(pid, &status, WUNTRACED);
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+            
+            getrusage(RUSAGE_CHILDREN, &usageAfter);
+            printf ("%ld.%06ld\n", usageAfter.ru_utime.tv_sec, usageAfter.ru_utime.tv_usec);
+            userTime += usageAfter.ru_utime.tv_sec + (usageAfter.ru_utime.tv_usec/1000000);
+
     }
+    
+    
     
 
-    return 1;
-    /*
-    pid_t childPid = fork();
-        
-    
-    if (!childPid) {
-        // child process
-        printf("Child:\nCurrent PID: %d and Child PID: %d\n",
-               getpid(), childPid);
-    } else {
-        printf("### Parent ###\nCurrent PID: %d and Child PID: %d\n",
-               getpid(), childPid);
-    }
     return true;
-    */
 }
 
 /*
@@ -292,6 +321,8 @@ bool runCommand(char **args)
     if (args[0] == NULL) {
         return true;
     }
+
+    
     
     //printf("running the command...\n");
     for (int i = 0; i < numFunctions(); i++) {
@@ -321,9 +352,23 @@ void startShell(int argc, char *argv[])
     bool shellRunning = true;
 
     while (shellRunning) {
+        background = false;
         printf("SHELL379: ");
         line = readLine();
         arguments = splitLine(line);
+        
+
+        int i = 0;
+        while (arguments[i] != NULL) {
+            i++;
+        }
+        printf("%d\n", i);
+        printf("%s\n", arguments[i - 1]);
+        if (!strcmp(arguments[i - 1], "&")) {  
+            background = true;
+            printf("bkgd process...\n");
+
+        }
         shellRunning = runCommand(arguments);
 
         /*
