@@ -1,19 +1,19 @@
 #include "util.h"
 
-bool helperText = true;
 
 int numActiveProcesses = 0;
 long long userTime = 0;
 long long sysTime = 0;
-bool exitSignal = false;
-int pids[100];
-
-bool background = false;
-
-// can i have a pointer to the start??
 int pidIndex = 0;
 
-char **commands[100];
+bool helperText = false;
+bool exitSignal = false;
+bool background = false;
+
+char *pids[MAX_PT_ENTRIES];
+char *commands[MAX_PT_ENTRIES];
+char *seconds[MAX_PT_ENTRIES];
+
 
 
 // list of built in commands
@@ -30,7 +30,7 @@ char *builtinNames[] =
 };
 
 // corresponding function to the list above
-int (*builtinFunc[]) (char **) = 
+int (*builtinFuncs[]) (char **) = 
 {
   &displayJobs,
   &resume,
@@ -47,6 +47,42 @@ int numFunctions()
   return sizeof(builtinNames) / sizeof(char *);
 }
 
+
+bool isActiveProcess(char *pid) {
+    FILE *p;
+    char *psLine = NULL;
+    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
+    int tokenBufferSize = TOKEN_BUFFER_SIZE;
+    char **psToks = malloc(tokenBufferSize * sizeof(char*));
+
+
+    if ((p = popen("ps", "r")) == NULL) {
+       printf("pipe could not be opened\n");
+    } else {
+       int lineCount = 0;
+
+       while (getline(&psLine, &bufferSize, p) != EOF) {
+           lineCount++;
+           if (lineCount == 1) {
+               continue;
+           }
+           psToks = splitLine(psLine);
+
+            if (!strcmp(pid, psToks[0])) {
+                numActiveProcesses--;
+                return true;
+            } else {
+                continue;
+            }
+            
+       }
+       if (pclose(p)) {
+           printf("pipe could not close\n");
+       }
+    }
+    return false;
+}
+
 // TODO: check args length, if more than 2, handle error accordingly...
 bool resume(char **args) 
 {
@@ -55,20 +91,39 @@ bool resume(char **args)
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
+    if (isActiveProcess(args[1])) {
+        //resume(args[1], 0);
+
+        // remove pid from pids array...
+
+
+        printf("process killed.\n");
+    } else {
+        printf("invalid pid entered...\n");
+    }
+
 
     return true;
 
 }
 
 //TODO: not working... fix this...
-bool valueInArray(int val, int *arr, int size){
+
+bool valueInArray(char *val, char *arr[], int size){
     int i;
+    printf("size passed in: %d\n", size);
     for (i=0; i < size; i++) {
-        if (arr[i] == val)
+        printf("searching %d\n", i);
+        if (strcmp(arr[i], val) == 0) {
             return true;
+        } else {
+            printf("not a match\n");
+        }
     }
     return false;
 }
+
+
 
 bool checkForProcess() {
     if (pids[0] == NULL) {
@@ -76,6 +131,8 @@ bool checkForProcess() {
     }
     return true;
 }
+
+
 
 bool killProcess(char **args) 
 {
@@ -92,8 +149,10 @@ bool killProcess(char **args)
     }
 
     // TODO: NOT WORKING...
-    if (valueInArray(args[1], pids, pidIndex + 1)) {
-        //kill(args[1]);
+    /*
+    printf("arg to delete: %s\n", args[1]);
+    if (isActiveProcess(args[1])) {
+        kill(args[1], 0);
 
         // remove pid from pids array...
 
@@ -102,7 +161,27 @@ bool killProcess(char **args)
     } else {
         printf("invalid pid entered...\n");
     }
+*/
+    FILE *p;
+    char *psLine = NULL;
+    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
+    int tokenBufferSize = TOKEN_BUFFER_SIZE;
+    char **psToks = malloc(tokenBufferSize * sizeof(char*));
+    int c;
 
+    if ((p = popen(("kill %s", args[1]), "w")) == NULL) {
+       printf("pipe could not be opened\n");
+    } else {
+       int lineCount = 0;
+
+       while ((c = fgetc(p)) != EOF) {
+           putchar(c);
+            
+       }
+       if (pclose(p)) {
+           printf("pipe could not close\n");
+       }
+    }
     return true;
 
 }
@@ -128,6 +207,16 @@ bool suspendProcess(char **args)
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
+    if (isActiveProcess(args[1])) {
+        //wait(args[1]);
+
+        // remove pid from pids array...
+
+
+        printf("process is waiting.\n");
+    } else {
+        printf("invalid pid entered...\n");
+    }
 
     return true;
 
@@ -141,6 +230,19 @@ bool waitProcess(char **args)
         return true;
     }
 
+    // check the return values of wait and put it in if statement to handle error..
+    //wait(pid)
+    if (isActiveProcess(args[1])) {
+        wait(args[1]);
+
+        // remove pid from pids array...
+
+
+        printf("process is waiting.\n");
+    } else {
+        printf("invalid pid entered...\n");
+    }
+    
     return true;
 
 }
@@ -150,27 +252,95 @@ void help()
     printf("help function call\n");
 }
 
+
+void printPids() {
+    printf("\n");
+    for(int i = 0; i < pidIndex; i++) {
+        printf("pid %d: %s\n", i, pids[i]);
+        printf("cmd %d: %s\n", i, commands[i]);
+        
+    }
+}
+
+
 bool displayJobs(char **args)
 {
     if (!checkNoArgs(args)) {
         printf("JOBS command does not take any arguments.\n");
         return true;
     }
-    char *psCommand[3] = {"ps", "-f", NULL};
-    //execvp(psCommand[0], psCommand);
-    //printf("\n\n");
+
+    printf("pid index is: %d\n", pidIndex);
+    for (int i = 0; i < pidIndex; i++) {
+        pids[i] = NULL;
+        commands[i] = NULL;
+        seconds[i] = NULL;
+    }
+
+    /* */
+    FILE *p;
+    char *psLine = NULL;
+    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
+    int tokenBufferSize = TOKEN_BUFFER_SIZE;
+    char **psToks = malloc(tokenBufferSize * sizeof(char*));
+    pidIndex = 0;
+
+
+    if ((p = popen("ps", "r")) == NULL) {
+       printf("pipe could not be opened\n");
+    } else {
+       int lineCount = 0;
+           printf("\nRunning processes:\n");
+        printf("  #   PID   S   SEC COMMAND\n");
+       while (getline(&psLine, &bufferSize, p) != EOF) {
+           lineCount++;
+           if (lineCount < 4) {
+               continue;
+           }
+           psToks = splitLine(psLine);
+
+            /*
+            printf("line %d: ", lineCount - 1);
+           for (int i = 0; i < 4; i++) {
+               printf("%s ", psToks[i]);
+           }
+           printf("\n");
+           */
+
+            pids[pidIndex] = psToks[0];
+            seconds[pidIndex] = psToks[2]; 
+            commands[pidIndex] = psToks[3];
+
+            //printf("trying to save: %s\n", psToks[0]);
+            //printf("pid saved as: %s at index: %d\n", pids[pidIndex], pidIndex);
+            printf("  %d: %s   R %s  %s\n", pidIndex, pids[pidIndex], seconds[pidIndex], commands[pidIndex]);
+            pidIndex++;
+            numActiveProcesses = lineCount -1;
+       }
+
+       //printf("lines read: %d\n", lineCount);
+       if (pclose(p)) {
+           printf("pipe could not close\n");
+       }
+    }
+/**/
+/*
+    printPids();
+
     printf("\nRunning processes:\n");
+    printf("pid index: %d\n", pidIndex);
     if (numActiveProcesses > 0) {
-        printf("  #     PID S SEC COMMAND\n");
+        //pids[1] = "test";
+        printf("  #   PID   S   SEC COMMAND\n");
         for (int i = 0; i < pidIndex; i++) {
-            printf("  %d:   %d R SEC  %s\n", i, pids[i], commands[i]);
+            printf("  %d: %s   R %s  %s\n", i, pids[i], seconds[i], commands[i]);
         }
     }
+    */
     printf("Processes =    %d active\n", numActiveProcesses);
     printf("Completed processes:\n");
-    printf("User time =    %ld seconds\n", userTime);
-    printf("Sys  time =    %ld seconds\n\n", sysTime);
-
+    printf("User time =    %lld seconds\n", userTime);
+    printf("Sys  time =    %lld seconds\n\n", sysTime);
     return true;
 }
 
@@ -180,48 +350,19 @@ bool exitCommand(char **args)
         printf("EXIT command does not take any arguments.\n");
         return true;
     }
+
+
+    //TODO: WAIT FOR ALL PROCESSES TO FINISH BEFORE exiting..
+
     printf("\nResources used\n");
-    printf("User time =    %d seconds\n", userTime);
-    printf("Sys  time =    %d seconds\n\n", sysTime);
+    printf("User time =    %lld seconds\n", userTime);
+    printf("Sys  time =    %lld seconds\n\n", sysTime);
 
     exitSignal = true;
     return false;
 }
 
-char *readLine() 
-{
-    char *inputLine = NULL;
-    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
-    getline(&inputLine, &bufferSize, stdin);
 
-    //TODO: STILL ONLY PRINTS FIRST ELEMENT IN THE LINE...
-    commands[pidIndex] = inputLine;
-    return inputLine;
-}
-
-char **splitLine(char *line) 
-{
-    int tokenBufferSize = TOKEN_BUFFER_SIZE;
-    int pos = 0;
-    char **tokens = malloc(tokenBufferSize * sizeof(char*));
-    char **tok;
-    char * delims = " \t\r\n\a";
-
-    tok = strtok(line, delims);
-    while (tok != NULL) {
-        tokens[pos] = tok;
-        pos++;
-
-        if (pos >= tokenBufferSize) {
-            tokenBufferSize += TOKEN_BUFFER_SIZE;
-            tokens = realloc(tokens, tokenBufferSize * sizeof(char*));
-        }
-        tok = strtok(NULL, delims);
-    }
-    tokens[pos] = NULL;
-    
-    return tokens;    
-}
 
 bool checkTooManyArgs(char **args) {
     if (args[2] != NULL) {
@@ -238,125 +379,99 @@ bool checkNoArgs(char **args) {
     return false;
 }
 
+void childInterrupt() {
+    if (background) {
+        printf("child process has finished.\n");
+    }
+}
 
 bool makeProcess(char **args) {
-    pid_t pid;
-    pid_t wait_pid;
-    int status;
+    pid_t cpid;  // child pid
+    pid_t wait_pid;  // wait pid
+    int status;  // current status
 
-    pid = fork();
+/*
+    if (checkTooManyArgs(args)) {
+        printf("argument limit reached.\n");
+        return true;
+    }*/
+    // checking if the child is finished
+    signal(SIGCHLD, childInterrupt);
 
-    if (pid == 0) {
+    cpid = fork();
 
-        // Child process
+    // the child process
+    if (cpid == 0) {
         numActiveProcesses++;
-        printf("Running child process with pid: %d\n", pid);
         if (execvp(args[0], args) < 0) {
+            // error doing the exec
             perror("SHELL379: ");
         }
         exit(EXIT_FAILURE);
-        } else if (pid < 0) {
-            // Error forking
+    } else if (cpid < 0) {
+            // There was an error forking...
             perror("SHELL379: ");
-        } else {
-            // Parent process
-            struct rusage usageBefore;
-            struct rusage usageAfter;
+    } else {
+        // Parent process
+        //struct rusage usageBefore;
+        struct rusage usage;
 
-            getrusage(RUSAGE_CHILDREN, &usageBefore);
-            printf ("%ld.%06ld\n", usageBefore.ru_utime.tv_sec, usageBefore.ru_utime.tv_usec);
+        // if pid == (pid from a wait command entered)
+        //      wait(NULL)
 
-            // add pid to pid array
-            pids[pidIndex] = pid;
-            pidIndex++;
-            // increment number of processes
-            numActiveProcesses++;
-            printf("Running parent process with pid: %d\n", getpid());
-
-            // if pid == (pid from a wait command entered)
-            //      wait(NULL)
-
-            /*
-            struct rusage usage;
-            getrusage(RUSAGE_SELF, &usage);
-            printf ("%ld.%06ld\n", usage.ru_stime.tv_sec, usage.ru_stime.tv_usec);
-            */
-            
+        if (!background) {
             do {
-            wait_pid = waitpid(pid, &status, WUNTRACED);
+            wait_pid = waitpid(cpid, &status, WUNTRACED);
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-            
-            getrusage(RUSAGE_CHILDREN, &usageAfter);
-            printf ("%ld.%06ld\n", usageAfter.ru_utime.tv_sec, usageAfter.ru_utime.tv_usec);
-            userTime += usageAfter.ru_utime.tv_sec + (usageAfter.ru_utime.tv_usec/1000000);
-            sysTime += usageAfter.ru_stime.tv_sec + (usageAfter.ru_stime.tv_usec/1000000);
+        } else {
+            printf("else statement.\n");
+            //wait(cpid);  // ?????
+        }
+        
+        getrusage(RUSAGE_CHILDREN, &usage);
+        //printf ("%ld.%06ld\n", usageAfter.ru_utime.tv_sec, usageAfter.ru_utime.tv_usec);
+        userTime += usage.ru_utime.tv_sec + (usage.ru_utime.tv_usec/1000000);
+        sysTime += usage.ru_stime.tv_sec + (usage.ru_stime.tv_usec/1000000);
 
     }
-    
-    
-    
 
     return true;
 }
 
-/*
-void makeProcess(char **args) {
-    pid_t pid;
-    if (fork()) {
-        // child process
-        if (execvp(args[0], args) == -1) {
-            perror(args[0]);
-        }
-        return;
-    } else if (pid < 0) {
-        // error forking
-        perror(args[0]);
-    } else {
-        // parent process
-
-
-    }
-    return;
-}
-*/
 
 bool runCommand(char **args) 
 {
     bool argFlag = false;
-    //bool builtinFlag = false;
-    // no commands entered...
+
+    // if no commands entered...
     if (args[0] == NULL) {
+        // go to next line in the shell
         return true;
     }
-
     
-    
-    //printf("running the command...\n");
     for (int i = 0; i < numFunctions(); i++) {
         if (strcmp(args[0], builtinNames[i]) == 0) {
             argFlag = checkTooManyArgs(args);
-            //if (argFlag && strcmp(args[0], "exit") && strcmp(args[0], "jobs")) {
+
             // too many arguments, don't execute anything, simply run the shell again
             if (argFlag) {
                 return argFlag;
             }
-            //builtinFlag = true;
-            return (*builtinFunc[i])(args);
+
+            return (*builtinFuncs[i])(args);
         }
     }
-    //builtinFlag = false;
 
-    printf("newProcess function...\n");
+    // not a built-in command, make a new process.
     return makeProcess(args);
-    // not a built in command, must be executed
-    //return newProcess(args);
 }
 
 void shellInit() {
     background = false;
     printf("SHELL379: ");
 }
-void setBkgd(char **a) {
+
+char **setBkgd(char **a) {
     int elemCount = 0;
         while (a[elemCount] != NULL) {
             elemCount++;
@@ -364,10 +479,21 @@ void setBkgd(char **a) {
         //printf("%d\n", elemCount);
         if (!strcmp(a[elemCount - 1], "&")) {  
             background = true;
-            a[elemCount - 1] == NULL;
+            a[elemCount - 1] = NULL;
             printf("bkgd process...\n");
         }
+    return a;
 }
+
+bool checkMaxArgs(int num) {
+    if (num > MAX_ARGS) {
+        printf("argument limit exceeded...");
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void startShell(int argc, char *argv[]) 
 {
     char *line;
@@ -378,12 +504,21 @@ void startShell(int argc, char *argv[])
         shellInit();
         line = readLine();
         arguments = splitLine(line);
+        printf("argc: %d\n", argc);
+        if (checkMaxArgs(argc) || arguments[0] == NULL) {
+            continue;
+        }
+        /*
         if (arguments[0] == NULL) {
             continue;
         }
-        setBkgd(arguments);
+        */
+        arguments = setBkgd(arguments);
 
         shellRunning = runCommand(arguments);
+        //free(line);
+        //free(arguments);
 
     }
+    
 }

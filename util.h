@@ -9,17 +9,17 @@
 #include <sys/times.h>
 #include <sys/resource.h>
 #include <fcntl.h> 
+#include <signal.h>
 
-
-
-//TODO: find a way to use these constants!!!
 #define LINE_LENGTH 100
-#define MAX_ARGS 7
+#define MAX_ARGS 7  //NEED TO DO
 #define MAX_LENGTH 20
 #define MAX_PT_ENTRIES 32
 #define BUFFER_SIZE 1024
 #define TOKEN_BUFFER_SIZE 64
 
+char *readLine();
+char **splitLine(char *line);
 bool displayJobs(char **args);
 bool resume(char **args);
 bool killProcess(char **args);
@@ -34,6 +34,5 @@ bool checkNoArgs(char **args);
 bool makeProcess(char **args);
 void shellInit();
 void startShell(int argc, char *argv[]);
-
 
 #endif

@@ -7,8 +7,9 @@
 #  necessary to run the package
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 CC = gcc # compiler of choice
-CFLAGS = -g -Wall # compile flags
-OBJS = main.o util.o # object files generated
+WFLAGS = -w # supress warnings for clean output
+CFLAGS = -w -g -Wall # compile flags
+OBJS = main.o util.o readingUtil.o # object files generated
 EXC = shell379 # executable name
 
 # builds the project
@@ -17,11 +18,19 @@ $(EXC): $(OBJS)
 
 # compiles main.c into its respective object (.o) file
 main.o: main.c util.h
-	$(CC) -c main.c
+	$(CC) $(WFLAGS) -c main.c
 
 # compiles util.c into its respective object (.o) file
 util.o: util.c util.h
-	$(CC) -c util.c
+	$(CC) $(WFLAGS) -c util.c
+
+# compiles readingUtil.c into its respective object (.o) file
+readingUtil.o: readingUtil.c util.h
+	$(CC) $(WFLAGS) -c readingUtil.c
+
+# compiles builtin.c into its respective object (.o) file
+#builtin.o: builtin.c util.h
+#	$(CC) $(WFLAGS) -c builtin.c
 
 # removes the .o and executable files from the directory
 clean:
