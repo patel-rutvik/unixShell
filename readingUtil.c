@@ -1,29 +1,58 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+Name: Rutvik Patel
+ID: 1530012
+CMPUT 379 Assignment 1: Mini Shell
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include "util.h"
 
-char *readLine() 
-{
+/*
+The stringCat function is responsible for combining two strings
+    Parameters:
+        char *s1: first string
+        char **s2: second string
+
+    Returns:
+        char *ans : the concatanated string
+*/
+char *stringCat(char *s1, char **s2) {
+    char *ans = (char *) malloc(1 + strlen(s1)+ strlen(s2));
+    strcpy(ans, s1);
+    strcat(ans, s2);  // joining the two strings
+    return ans;
+}
+
+/*
+The readLine function is responsible for reading in a line from stdin
+    Parameters:
+
+    Returns:
+        char *inputLine : the line read in from stdin
+*/
+char *readLine() {
     char *inputLine = NULL;
     size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
     getline(&inputLine, &bufferSize, stdin);
-
-    //TODO: STILL ONLY PRINTS FIRST ELEMENT IN THE LINE...
-    //commands[pidIndex] = inputLine;
     return inputLine;
 }
 
-char **splitLine(char *line) 
-{
-    int tokenBufferSize = TOKEN_BUFFER_SIZE;
-    int pos = 0;
-    char **tokens = malloc(tokenBufferSize * sizeof(char*));
-    char *tok;
-    char *delims = " \t\r\n\a";
+/*
+The splitLine function is responsible for splitting the specified line by the delimiters
+    Parameters:
+        char *line: the line read in from stdin
 
-    tok = strtok(line, delims);
+    Returns:
+        char **tokens: the tokens split by the delimiters
+*/
+char **splitLine(char *line) {
+    int tokenBufferSize = TOKEN_BUFFER_SIZE;
+    char *delims = " \t\r\n\a";  // delimiters of choices
+    char **tokens = malloc(tokenBufferSize * sizeof(char*));
+    char *tok = strtok(line, delims);
+    int pos = 0;
+    
     while (tok != NULL) {
         tokens[pos] = tok;
         pos++;
-
         if (pos >= tokenBufferSize) {
             tokenBufferSize += TOKEN_BUFFER_SIZE;
             tokens = realloc(tokens, tokenBufferSize * sizeof(char*));
@@ -31,6 +60,5 @@ char **splitLine(char *line)
         tok = strtok(NULL, delims);
     }
     tokens[pos] = NULL;
-    
     return tokens;    
 }

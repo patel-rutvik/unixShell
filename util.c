@@ -1,377 +1,437 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+Name: Rutvik Patel
+ID: 1530012
+CMPUT 379 Assignment 1: Mini Shell
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include "util.h"
 
+int numActiveProcesses = 0;  // current number of active processes
+long long userTime = 0;  // total user CPU time
+long long sysTime = 0;  // total system CPU time
+int pidIndex = 0;  // current pid index
 
-int numActiveProcesses = 0;
-long long userTime = 0;
-long long sysTime = 0;
-int pidIndex = 0;
+bool helperText = false;  // toggle debugging output
+bool background = false;  // background flag to indicate if a task is running in the bkgd
 
-bool helperText = false;
-bool exitSignal = false;
-bool background = false;
-
+/* arrays to hold and model the PCB (process control block) */
 char *pids[MAX_PT_ENTRIES];
 char *commands[MAX_PT_ENTRIES];
 char *seconds[MAX_PT_ENTRIES];
+char *comStatus[MAX_PT_ENTRIES];
 
+/* 
+NOTE TO GRADER: input/output redirection to files is only working with the following syntax, sorry :(
+Working: cat main.txt > test.txt
+NOT working: cat main.txt >test.txt
+*/
 
+/* initializing the input and output files to null */
+char *inFile = NULL;
+char *outFile = NULL;
 
 // list of built in commands
-char *builtinNames[] = 
-{
+char *builtinNames[] = {
     "jobs",
     "resume",
     "kill",
     "sleep",
     "suspend",
     "wait",
-    "help",
     "exit"
 };
 
 // corresponding function to the list above
-int (*builtinFuncs[]) (char **) = 
-{
+int (*builtinFuncs[]) (char **) = {
   &displayJobs,
   &resume,
   &killProcess,
   &sleepProcess,
   &suspendProcess,
   &waitProcess,
-  &help,
   &exitCommand
 };
 
-int numFunctions() 
-{
+/*
+The numFunctions function simply returns the number of built-in functions in the shell
+*/
+int numFunctions() {
   return sizeof(builtinNames) / sizeof(char *);
 }
 
+/*
+The isActiveProcess function is responsible for checking if the specified process is currently running
+    Parameters:
+        char *pid: the pid to check
 
+    Returns:
+        bool : if the process is active
+*/
 bool isActiveProcess(char *pid) {
     FILE *p;
     char *psLine = NULL;
     size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
     int tokenBufferSize = TOKEN_BUFFER_SIZE;
-    char **psToks = malloc(tokenBufferSize * sizeof(char*));
+    char **psToks = malloc(tokenBufferSize * sizeof(char*));  // token array
 
-
+    // pipe the ps command
     if ((p = popen("ps", "r")) == NULL) {
-       printf("pipe could not be opened\n");
+        // error in opening the pipe
+        printf("pipe could not be opened\n");
     } else {
-       int lineCount = 0;
-
-       while (getline(&psLine, &bufferSize, p) != EOF) {
+        // pipe successful, continue.
+        int lineCount = 0;
+        // while lines are available to be read...
+        while (getline(&psLine, &bufferSize, p) != EOF) {
            lineCount++;
+           // ignore the first line
            if (lineCount == 1) {
                continue;
            }
-           psToks = splitLine(psLine);
-
+           psToks = splitLine(psLine);  // split the line by the delimiters, saving the tokens
+            // if the pid is found
             if (!strcmp(pid, psToks[0])) {
-                numActiveProcesses--;
                 return true;
             } else {
+                // pid is not a match, continue to the next line
                 continue;
-            }
-            
-       }
-       if (pclose(p)) {
-           printf("pipe could not close\n");
-       }
-    }
-    return false;
-}
-
-// TODO: check args length, if more than 2, handle error accordingly...
-bool resume(char **args) 
-{
-    printf("resume function call\n");
-    if (checkNoArgs(args)) {
-        printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
-        return true;
-    }
-    if (isActiveProcess(args[1])) {
-        //resume(args[1], 0);
-
-        // remove pid from pids array...
-
-
-        printf("process killed.\n");
-    } else {
-        printf("invalid pid entered...\n");
-    }
-
-
-    return true;
-
-}
-
-//TODO: not working... fix this...
-
-bool valueInArray(char *val, char *arr[], int size){
-    int i;
-    printf("size passed in: %d\n", size);
-    for (i=0; i < size; i++) {
-        printf("searching %d\n", i);
-        if (strcmp(arr[i], val) == 0) {
-            return true;
-        } else {
-            printf("not a match\n");
+            } 
+        }
+        if (pclose(p)) {
+            // error closing the pipe
+            printf("pipe could not close\n");
         }
     }
+    // if we have not yet returned true, it means the pid was not found, return false
     return false;
 }
 
+/*
+The resume function is responsible for resuming a previously suspended task
+    Parameters:
+        char **args: the arguments entered
 
+    Returns:
+        bool true: resume finished
+*/
+bool resume(char **args) {   
+    if (helperText) {
+        printf("resume function call\n");
+    }
+    // check the argument format
+    if (checkNoArgs(args)) {
+        printf("\n\nfollow this format: <cmd> <int>\n\n");
+        return true;
+    }
+    // check if the process is in the pcb
+    if (isActiveProcess(args[1])) {
+        FILE *p;
+        char *command = "kill -CONT ";  // command to pipe
+        char *catString = (char *) malloc(1 + strlen(command)+ strlen(args[1]));
+        strcpy(catString, command);
+        strcat(catString, args[1]);  // joining the command and pid strings
 
+        // making the system call with the given pid, using a pipe
+        if ((p = popen(catString, "r")) == NULL) {
+        printf("pipe could not be opened\n");
+        } else {
+            // pipe opened successfully...
+            printf("process resumed.\n");
+        
+            if (pclose(p)) {
+                // pipe was not successful, therefore process DNE
+            printf("process does not exist.\n");
+            }
+        }
+    } else {
+        printf("process not found.\n");
+    }
+
+    return true;
+
+}
+
+/*
+The checkForProcess function is responsible for checking if any processes are currently running
+    Parameters:
+
+    Returns:
+        bool : if the there is at least one process running
+*/
 bool checkForProcess() {
+    // if there is no pid saved in the first index of the pid array
     if (pids[0] == NULL) {
+        // no process running
         return false;
     }
+    // a process is running
     return true;
 }
 
+/*
+The killProcess function is responsible for killing a process with the specified pid
+    Parameters:
+        char **args: the arguments passed in
 
-
-bool killProcess(char **args) 
-{
-    printf("kill function call\n");
-    //printf("the second arg: %s\n", args[1]);
+    Returns:
+        bool : if the value is in the array
+*/
+bool killProcess(char **args) {   
+    if (helperText) {
+        printf("kill function call\n");
+    }
+    // check the argument format
     if (checkNoArgs(args)) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
+    // check if there is a process running
     if (!checkForProcess()) {
         printf("no processes running...\n");
         return true;
     }
 
-    // TODO: NOT WORKING...
-    /*
-    printf("arg to delete: %s\n", args[1]);
-    if (isActiveProcess(args[1])) {
-        kill(args[1], 0);
-
-        // remove pid from pids array...
-
-
-        printf("process killed.\n");
-    } else {
-        printf("invalid pid entered...\n");
+    if (helperText) {
+        printf("arg to delete: %s\n", args[1]);
     }
-*/
-    FILE *p;
-    char *psLine = NULL;
-    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
-    int tokenBufferSize = TOKEN_BUFFER_SIZE;
-    char **psToks = malloc(tokenBufferSize * sizeof(char*));
-    int c;
 
-    if ((p = popen(("kill %s", args[1]), "w")) == NULL) {
+    FILE *p;
+    char *command = "kill "; // command to pipe
+    char *catString = (char *) malloc(1 + strlen(command)+ strlen(args[1]));
+    strcpy(catString, command);
+    strcat(catString, args[1]);  // joining the command and the pid strings
+
+    // making the system call with the given pid, using a pipe
+    if ((p = popen(catString, "r")) == NULL) {
        printf("pipe could not be opened\n");
     } else {
-       int lineCount = 0;
-
-       while ((c = fgetc(p)) != EOF) {
-           putchar(c);
-            
-       }
-       if (pclose(p)) {
-           printf("pipe could not close\n");
-       }
+        // pipe opened successfully...
+        numActiveProcesses--;
+        printf("process killed.\n");
+        if (pclose(p)) {
+            // pipe was not successful, therefore process DNE
+           printf("process does not exist.\n");
+        }
     }
     return true;
-
 }
 
-bool sleepProcess(char **args) 
-{
-    //printf("going to sleep for %d seconds...\n", atoi(args[1]));
+/*
+The sleepProcess function is responsible for sleeping the shell for the specified number of seconds
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool true: continue the shell loop
+*/
+bool sleepProcess(char **args) {
+    if (helperText) {
+        printf("going to sleep for %d seconds...\n", atoi(args[1]));
+    }
+    // check the argument format
     if (checkNoArgs(args)) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
-
+    // sleep the shell for args[1] seconds
     sleep(atoi(args[1]));
-
     return true;
-
 }
 
-bool suspendProcess(char **args) 
-{
-    printf("suspend function call\n");
+/*
+The suspendProcess function is responsible for suspending a process with the specified pid
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool true: continue the shell loop
+*/
+bool suspendProcess(char **args) {   
+    if (helperText) {
+        printf("suspend function call\n");
+    }
+    // check argument format
     if (checkNoArgs(args)) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
+
+    // check if it is currently in the pcb
     if (isActiveProcess(args[1])) {
-        //wait(args[1]);
+        FILE *p;
+        char *command = "kill -STOP ";  // command to pipe
+        char *catString = (char *) malloc(1 + strlen(command)+ strlen(args[1]));
+        strcpy(catString, command);
+        strcat(catString, args[1]);  // joining the command and pid strings
 
-        // remove pid from pids array...
+        // making the system call with the given pid, using a pipe
+        if ((p = popen(catString, "r")) == NULL) {
+        printf("pipe could not be opened\n");
+        } else {
+            // pipe opened successfully...
+            printf("process suspended.\n");
 
-
-        printf("process is waiting.\n");
+            if (pclose(p)) {
+                // pipe was not successful, therefore process DNE
+            printf("process does not exist.\n");
+            }
+        }
     } else {
-        printf("invalid pid entered...\n");
+        printf("process not found..\n");
     }
-
     return true;
-
 }
 
-bool waitProcess(char **args) 
-{
-    printf("wait function call\n");
+/*
+The waitProcess function is responsible for making a process with the specified pid wait
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool true: continue the shell loop
+*/
+bool waitProcess(char **args) {
+    if (helperText) {
+        printf("wait function call\n");
+    }
+
+    // check argument format
     if (checkNoArgs(args)) {
         printf("\nexpected another parameter...\nfollow this format: <cmd> <int>\n\n");
         return true;
     }
 
     // check the return values of wait and put it in if statement to handle error..
-    //wait(pid)
     if (isActiveProcess(args[1])) {
         wait(args[1]);
-
-        // remove pid from pids array...
-
-
         printf("process is waiting.\n");
     } else {
-        printf("invalid pid entered...\n");
+        printf("process not found...\n");
     }
-    
     return true;
-
 }
 
-void help() 
-{
-    printf("help function call\n");
+/*
+The printResources function is responsible for printing out the resources used
+*/
+void printResources() {
+    printf("User time =    %lld seconds\n", userTime);
+    printf("Sys  time =    %lld seconds\n\n", sysTime);
 }
 
+/*
+The displayJobs function is responsible for querying and displaying the current pcb
+    Parameters:
+        char **args: the arguments passed in
 
-void printPids() {
-    printf("\n");
-    for(int i = 0; i < pidIndex; i++) {
-        printf("pid %d: %s\n", i, pids[i]);
-        printf("cmd %d: %s\n", i, commands[i]);
-        
-    }
-}
-
-
-bool displayJobs(char **args)
-{
+    Returns:
+        bool true: continue the shell loop
+*/
+bool displayJobs(char **args) {
+    // check the argument format
     if (!checkNoArgs(args)) {
         printf("JOBS command does not take any arguments.\n");
         return true;
     }
-
-    printf("pid index is: %d\n", pidIndex);
+    // reset the pcb 
     for (int i = 0; i < pidIndex; i++) {
         pids[i] = NULL;
         commands[i] = NULL;
         seconds[i] = NULL;
+        comStatus[i] = NULL;
     }
-
-    /* */
     FILE *p;
     char *psLine = NULL;
     size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
     int tokenBufferSize = TOKEN_BUFFER_SIZE;
-    char **psToks = malloc(tokenBufferSize * sizeof(char*));
+    char **psToks = malloc(tokenBufferSize * sizeof(char*));  // token array
     pidIndex = 0;
 
-
+    // open pipe for the ps command
     if ((p = popen("ps", "r")) == NULL) {
-       printf("pipe could not be opened\n");
+        // error piping
+        printf("pipe could not be opened\n");
     } else {
-       int lineCount = 0;
-           printf("\nRunning processes:\n");
+        // pipe opened successfully
+        int lineCount = 0;
+        printf("\nRunning processes:\n");
         printf("  #   PID   S   SEC COMMAND\n");
-       while (getline(&psLine, &bufferSize, p) != EOF) {
-           lineCount++;
-           if (lineCount < 4) {
+        // while there is a line to read..
+        while (getline(&psLine, &bufferSize, p) != EOF) {
+            lineCount++;
+            // ignore the first 3 lines (the ps output, the bash shell, and the ./shell379 lines)
+            if (lineCount < 4) {
                continue;
-           }
-           psToks = splitLine(psLine);
-
-            /*
-            printf("line %d: ", lineCount - 1);
-           for (int i = 0; i < 4; i++) {
-               printf("%s ", psToks[i]);
-           }
-           printf("\n");
-           */
-
+            }
+            psToks = splitLine(psLine);  // split the line by the delimiters
+            /* update the pcb */
             pids[pidIndex] = psToks[0];
             seconds[pidIndex] = psToks[2]; 
             commands[pidIndex] = psToks[3];
-
-            //printf("trying to save: %s\n", psToks[0]);
-            //printf("pid saved as: %s at index: %d\n", pids[pidIndex], pidIndex);
-            printf("  %d: %s   R %s  %s\n", pidIndex, pids[pidIndex], seconds[pidIndex], commands[pidIndex]);
+            comStatus[pidIndex] = "R";
+            // print out the current running process
+            printf("  %d: %s  %s %s  %s\n", pidIndex, pids[pidIndex], comStatus[pidIndex], seconds[pidIndex], commands[pidIndex]);
             pidIndex++;
-            numActiveProcesses = lineCount -1;
+            numActiveProcesses = lineCount - 3;
        }
-
-       //printf("lines read: %d\n", lineCount);
        if (pclose(p)) {
            printf("pipe could not close\n");
        }
     }
-/**/
-/*
-    printPids();
-
-    printf("\nRunning processes:\n");
-    printf("pid index: %d\n", pidIndex);
-    if (numActiveProcesses > 0) {
-        //pids[1] = "test";
-        printf("  #   PID   S   SEC COMMAND\n");
-        for (int i = 0; i < pidIndex; i++) {
-            printf("  %d: %s   R %s  %s\n", i, pids[i], seconds[i], commands[i]);
-        }
-    }
-    */
+    /* printing out resources used */
     printf("Processes =    %d active\n", numActiveProcesses);
     printf("Completed processes:\n");
-    printf("User time =    %lld seconds\n", userTime);
-    printf("Sys  time =    %lld seconds\n\n", sysTime);
+    printResources();
     return true;
 }
 
-bool exitCommand(char **args) 
-{
+/*
+The exitCommand function is responsible for exiting the shell
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool : if the shell should continue executing
+*/
+bool exitCommand(char **args) {
+    // check the argument formatting
     if (!checkNoArgs(args)) {
         printf("EXIT command does not take any arguments.\n");
         return true;
     }
+    wait(0);  // wait for all processes to finish
 
+    /* print out the resources used. */
+    printf("Resources used\n");
+    printResources();
 
-    //TODO: WAIT FOR ALL PROCESSES TO FINISH BEFORE exiting..
-
-    printf("\nResources used\n");
-    printf("User time =    %lld seconds\n", userTime);
-    printf("Sys  time =    %lld seconds\n\n", sysTime);
-
-    exitSignal = true;
     return false;
 }
 
+/*
+The checkTooManyArgs function is responsible for checking if there are too many arguments passed in
+    Parameters:
+        char **args: the arguments passed in
 
-
+    Returns:
+        bool : if the number of arguments is acceptable
+*/
 bool checkTooManyArgs(char **args) {
     if (args[2] != NULL) {
         printf("too many commands entered!\n");
-        return true;
+        return true;  // go to next iteration of the shell
     }
-    return false;
+    return false;  // continue this iteration, arguments are okay
 }
 
+/*
+The checkNoArgs function is responsible for checking if no arguments were passed in
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool : if the there was 0 arguments passed in
+*/
 bool checkNoArgs(char **args) {
     if (args[1] == NULL) {
         return true;
@@ -379,30 +439,43 @@ bool checkNoArgs(char **args) {
     return false;
 }
 
+/*
+The childInterrupt function is responsible for handling the child interrupt signal by simpling printing
+out that the background process has finished.
+*/
 void childInterrupt() {
     if (background) {
-        printf("child process has finished.\n");
+        printf("bkgd process has finished.\n");
     }
 }
 
-bool makeProcess(char **args) {
+/*
+The makeProcess function is responsible for making a new process using the exec and fork system calls
+    Parameters:
+        char **args: the arguments passed in
+
+    Returns:
+        bool true: shell should continue executing
+*/
+bool makeProcess(char **args, int input, int output) {
     pid_t cpid;  // child pid
     pid_t wait_pid;  // wait pid
     int status;  // current status
 
-/*
-    if (checkTooManyArgs(args)) {
-        printf("argument limit reached.\n");
-        return true;
-    }*/
     // checking if the child is finished
     signal(SIGCHLD, childInterrupt);
-
     cpid = fork();
-
     // the child process
     if (cpid == 0) {
         numActiveProcesses++;
+        /* check redirection flags and redirect accordingly */
+        if (input) {
+            freopen(inFile, "r", stdin);
+        }
+        if (output) {
+            freopen(outFile, "w+", stdout);
+        }
+        // execute the command using exec
         if (execvp(args[0], args) < 0) {
             // error doing the exec
             perror("SHELL379: ");
@@ -412,79 +485,97 @@ bool makeProcess(char **args) {
             // There was an error forking...
             perror("SHELL379: ");
     } else {
-        // Parent process
-        //struct rusage usageBefore;
-        struct rusage usage;
+        // the parent process
+        struct rusage usage;  // struct to use for the rusage() call
 
-        // if pid == (pid from a wait command entered)
-        //      wait(NULL)
-
+        // check for background process
         if (!background) {
+            // use waitpid() to check for a status change, until the
+            // process is EXITED or kill by a SIGNAL
             do {
             wait_pid = waitpid(cpid, &status, WUNTRACED);
             } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         } else {
-            printf("else statement.\n");
-            //wait(cpid);  // ?????
+            sleep(0.1);  // idle slightly
         }
         
+        /* get the usage of the process and update the running totals in the pcb*/
         getrusage(RUSAGE_CHILDREN, &usage);
-        //printf ("%ld.%06ld\n", usageAfter.ru_utime.tv_sec, usageAfter.ru_utime.tv_usec);
+        if (helperText) {
+            printf ("%ld.%06ld\n", usage.ru_utime.tv_sec, usage.ru_utime.tv_usec);
+        }
         userTime += usage.ru_utime.tv_sec + (usage.ru_utime.tv_usec/1000000);
         sysTime += usage.ru_stime.tv_sec + (usage.ru_stime.tv_usec/1000000);
-
     }
-
     return true;
 }
 
+/*
+The runCommand function is responsible for redirecting the command entered to the appropriate functions
+    Parameters:
+        char **args: the arguments passed in
 
-bool runCommand(char **args) 
-{
+    Returns:
+        bool : if the shell should continue executing
+*/
+bool runCommand(char **args, char *argv, int input, int output) {
     bool argFlag = false;
-
     // if no commands entered...
     if (args[0] == NULL) {
         // go to next line in the shell
         return true;
     }
-    
     for (int i = 0; i < numFunctions(); i++) {
         if (strcmp(args[0], builtinNames[i]) == 0) {
-            argFlag = checkTooManyArgs(args);
-
+            argFlag = checkTooManyArgs(args); // check if too many arguments are passed 
             // too many arguments, don't execute anything, simply run the shell again
             if (argFlag) {
                 return argFlag;
             }
-
             return (*builtinFuncs[i])(args);
         }
     }
-
     // not a built-in command, make a new process.
-    return makeProcess(args);
+    return makeProcess(args, input, output);
 }
 
+/*
+The shellInit function is responsible for initializing the shell
+*/
 void shellInit() {
     background = false;
     printf("SHELL379: ");
 }
 
+/*
+The setBkgd function is responsible for handling a background task command
+    Parameters:
+        char **: the arguments passed in
+
+    Returns:
+        char **a : the updated argument array
+*/
 char **setBkgd(char **a) {
     int elemCount = 0;
         while (a[elemCount] != NULL) {
             elemCount++;
         }
-        //printf("%d\n", elemCount);
         if (!strcmp(a[elemCount - 1], "&")) {  
-            background = true;
-            a[elemCount - 1] = NULL;
-            printf("bkgd process...\n");
+            background = true; // set the background flag to true
+            a[elemCount - 1] = NULL; // remove the '&' from the arguments array
+            printf("%s running in the bkgd.\n", a[0]);
         }
     return a;
 }
 
+/*
+The checkMaxArgs function is responsible for checking to see if the max arguments have been reached
+    Parameters:
+        int num: the number of arguments passed in
+
+    Returns:
+        bool : if the argument limit has been exceeded
+*/
 bool checkMaxArgs(int num) {
     if (num > MAX_ARGS) {
         printf("argument limit exceeded...");
@@ -494,31 +585,38 @@ bool checkMaxArgs(int num) {
     }
 }
 
-void startShell(int argc, char *argv[]) 
-{
-    char *line;
-    char **arguments;
-    bool shellRunning = true;
+/*
+The startShell function is responsible for running the shell, handling the input and redirecting
+to helper functions
+    Parameters:
+        int argc: the stdin argument
+        char *argv[]: the stdin argument
 
+*/
+void startShell(int argc, char *argv[]) {
+    char *line;  // the current line
+    char **arguments;  // holding the arguments
+    bool shellRunning = true;  // set the shell to be running
+    size_t bufferSize = BUFFER_SIZE;  // getLine allocates buffer size automatically
+    int output;
+    int input;
+
+    // while the shell is running...
     while (shellRunning) {
-        shellInit();
-        line = readLine();
-        arguments = splitLine(line);
-        printf("argc: %d\n", argc);
+        shellInit();  // initialize the shell
+        line = readLine();  // read the line 
+        arguments = splitLine(line);  // split the line
+        /* check for input/output redirection */
+        input = inputRedirect(arguments, &inFile);
+        output = outputRedirect(arguments, &outFile);
+
+        // check arguments
         if (checkMaxArgs(argc) || arguments[0] == NULL) {
             continue;
         }
-        /*
-        if (arguments[0] == NULL) {
-            continue;
-        }
-        */
-        arguments = setBkgd(arguments);
-
-        shellRunning = runCommand(arguments);
-        //free(line);
-        //free(arguments);
-
+        arguments = setBkgd(arguments);  // check for background process
+        shellRunning = runCommand(arguments, argv, input, output);  // run the command, and update the status of the shell
     }
-    
+    free(line);
+    free(arguments);
 }
