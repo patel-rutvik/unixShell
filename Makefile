@@ -10,7 +10,7 @@ CC = gcc # compiler of choice
 WFLAGS = -w # supress warnings for clean output
 CFLAGS = -w -g -Wall # compile flags
 OBJS = main.o util.o readingUtil.o redirect.o # object files generated
-EXC = shell379 # executable name
+EXC = unixShell # executable name
 
 # builds the project
 $(EXC): $(OBJS)
