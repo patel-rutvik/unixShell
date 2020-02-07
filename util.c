@@ -1,7 +1,5 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 Name: Rutvik Patel
-ID: 1530012
-CMPUT 379 Assignment 1: Mini Shell
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #include "util.h"
 
@@ -18,12 +16,6 @@ char *pids[MAX_PT_ENTRIES];
 char *commands[MAX_PT_ENTRIES];
 char *seconds[MAX_PT_ENTRIES];
 char *comStatus[MAX_PT_ENTRIES];
-
-/* 
-NOTE TO GRADER: input/output redirection to files is only working with the following syntax, sorry :(
-Working: cat main.txt > test.txt
-NOT working: cat main.txt >test.txt
-*/
 
 /* initializing the input and output files to null */
 char *inFile = NULL;
@@ -544,7 +536,7 @@ The shellInit function is responsible for initializing the shell
 */
 void shellInit() {
     background = false;
-    printf("SHELL379: ");
+    printf("unixShell: ");
 }
 
 /*
