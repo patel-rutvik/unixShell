@@ -1,7 +1,4 @@
 # Rutvik Patel
-# 1530012
-# CMPUT 379: Assignment 1
-# Mini Shell
 
 #  This makefile allows the user to link, compile and clean the files
 #  necessary to run the package
