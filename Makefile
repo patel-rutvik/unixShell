@@ -39,7 +39,7 @@ clean:
 
 # prints out the makefile target objectives
 help:
-	@echo 'make (shell379)   : builds the project and generates the shell379 executable'
+	@echo 'make (unixShell)   : builds the project and generates the shell379 executable'
 	@echo 'make main.o       : compiles main.c into its respective object (.o) file'
 	@echo 'make util.o       : comiles util.c into its respective object (.o) file'
 	@echo 'make readingUtil.o: comiles readingUtil.c into its respective object (.o) file'
