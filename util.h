@@ -1,7 +1,5 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 Name: Rutvik Patel
-ID: 1530012
-CMPUT 379 Assignment 1: Mini Shell
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #ifndef _UTIL_H_
 #define _UTIL_H_
